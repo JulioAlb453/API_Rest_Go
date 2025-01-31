@@ -1,8 +1,8 @@
 package controllers
 
 import (
-    "API_ejemplo/album/application"
-    "API_ejemplo/errores"
+    "API_ejemplo/src/album/application"
+    "API_ejemplo/src/errores"
     "go.mongodb.org/mongo-driver/bson/primitive"
     "github.com/gin-gonic/gin"
     "net/http"

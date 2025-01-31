@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"API_ejemplo/errores"
+	"API_ejemplo/src/errores"
 	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"API_ejemplo/album/application")
+	"API_ejemplo/src/album/application")
 
 type AlbumGetAllController struct {
 	UseCase *application.GetAllAlbumsUseCase

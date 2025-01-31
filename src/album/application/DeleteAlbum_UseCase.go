@@ -1,7 +1,7 @@
 package application
 
 import (
-	"API_ejemplo/album/domain"
+	"API_ejemplo/src/album/domain"
 	"context"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

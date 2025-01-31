@@ -1,13 +1,12 @@
 package controllers
 
 import (
-    "API_ejemplo/album/application"
-    "API_ejemplo/errores"
+    "API_ejemplo/src/album/application"
+    "API_ejemplo/src/errores"
     "github.com/gin-gonic/gin"
     "go.mongodb.org/mongo-driver/bson/primitive"
     "net/http"
-    "errors" // Importa el paquete errors
-)
+    "errors" )
 
 type AlbumGetByIdController struct {
     UseCase *application.GetAlbumByIdUseCase

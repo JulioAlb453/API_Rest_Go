@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"API_ejemplo/album/domain"
+	"API_ejemplo/src/album/domain"
 	"context"
 	"errors"
 	"time"

@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"API_ejemplo/album/application"
-	"API_ejemplo/album/domain"
-	"API_ejemplo/errores"
+	"API_ejemplo/src/album/application"
+	"API_ejemplo/src/album/domain"
+	"API_ejemplo/src/errores"
 	"context"
 	"net/http"
 

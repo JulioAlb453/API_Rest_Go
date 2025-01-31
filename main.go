@@ -1,7 +1,7 @@
 package main
 
 import (
-	"API_ejemplo/album/infraestructure"
+	"API_ejemplo/src/album/infraestructure"
 
 )
 

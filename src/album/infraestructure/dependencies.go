@@ -1,10 +1,10 @@
 package infraestructure
 
 import (
-	"API_ejemplo/album/application"
-	"API_ejemplo/album/infraestructure/controllers"
-	"API_ejemplo/album/infraestructure/repository"
-	"API_ejemplo/core"
+	"API_ejemplo/src/album/application"
+	"API_ejemplo/src/album/infraestructure/controllers"
+	"API_ejemplo/src/album/infraestructure/repository"
+	"API_ejemplo/src/core"
 	"log"
 )
 
