@@ -27,6 +27,8 @@ func (r *MongoAlbumRepository) Save(ctx context.Context, album domain.Album) err
 		"Title":     album.Title,
 		"Artist":    album.Artist,
 		"Year":      album.Year,
+		"Stock": 	 album.Stock,
+		"Price": 	 album.Price,
 		"createdAt": album.CreatedAt,
 	})
 	if err != nil {
@@ -90,6 +92,8 @@ func (r *MongoAlbumRepository) Update(ctx context.Context, album domain.Album) (
 			"Title":    album.Title,
 			"Artist":   album.Artist,
 			"Year":     album.Year,
+			"Stock": album.Stock,
+			"Price": album.Price,
 			"updatedAt": time.Now(),
 		},
 	}
