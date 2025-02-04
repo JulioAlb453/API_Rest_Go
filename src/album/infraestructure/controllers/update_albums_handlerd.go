@@ -24,7 +24,7 @@ func (ac *AlbumUpdateController) UpdateAlbumHandler(c *gin.Context) {
 
     objectId, err := primitive.ObjectIDFromHex(id)
     if err != nil {
-        errores.SendErrorResponse(c, http.StatusBadRequest, errors.New("ID inválido")) // Crear error con errors.New
+        errores.SendErrorResponse(c, http.StatusBadRequest, errors.New("ID inválido")) 
         return
     }
 

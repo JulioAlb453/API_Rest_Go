@@ -12,10 +12,10 @@ type GetSupplierByIdSUseCase struct{
 }
 
 func NewGetSupplierByIdUSeCase(repo domain.ISupplier) *GetSupplierByIdSUseCase{
-	return &GetSupplierByIdSUseCase{ repo: repo}
+	return &GetSupplierByIdSUseCase{repo: repo}
 }
 
-func (uc *GetAllSupplierUseCase) Run(ctx context.Context, id primitive.ObjectID) (domain.Supplier, error){
+func (uc *GetSupplierByIdSUseCase) Execute(ctx context.Context, id primitive.ObjectID) (domain.Supplier, error){
 	supplier, err := uc.repo.GetSupplierById(ctx, id)
 	if err != nil{
 		return domain.Supplier{}, err
