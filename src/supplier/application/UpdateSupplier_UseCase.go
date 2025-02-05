@@ -10,6 +10,10 @@ type UpdateSupplierUseCase struct {
 	repo domain.ISupplier
 }
 
+func NewUpdateSupplierUseCase(repo domain.ISupplier) *UpdateSupplierUseCase{
+	return &UpdateSupplierUseCase{repo: repo}
+}
+
 func (uc *UpdateSupplierUseCase) Execute(ctx context.Context, supplier domain.Supplier) (domain.Supplier, error) {
 	if supplier.Name == "" || supplier.Address == "" {
 		return domain.Supplier{}, errors.New("Nombre y direccion son requeridos")
