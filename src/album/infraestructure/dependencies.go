@@ -14,6 +14,10 @@ type Dependencies struct {
 	AlbumGetAllController     *controllers.AlbumGetAllController
 	AlbumUpdateController     *controllers.AlbumUpdateController
 	AlbumDeleteController     *controllers.AlbumDeleteController
+
+	ShortPollingStockController    *controllers.ShortPollingStockController
+	LongPollingController     *controllers.LongPollingController
+	ShortPollingPriceController    *controllers.ShortPollingPriceController
 }
 
 func Init() *Dependencies {
@@ -22,6 +26,7 @@ func Init() *Dependencies {
 		log.Fatal("Error al conectar con la base de datos")
 	}
 	db := conn.Database("MundyWalk")
+	client := conn
 
 	albumRepo := repository.NewMongoAlbumRepository(db)
 
@@ -37,11 +42,18 @@ func Init() *Dependencies {
 	albumUpdateController := controllers.NewAlbumUpdateController(updateAlbumUseCase)
 	albumDeleteController := controllers.NewAlbumDeleteController(deleteAlbumUseCase)
 
+	shortPollingController := controllers.NewShortPollingStockController(client)
+	shortPollingPriceController := controllers.NewShortPollingPriceController(client)
+	longPollingController := controllers.NewLongPollingController(client)
+
 	return &Dependencies{
 		AlbumSaveController:       albumSaveController,
 		AlbumGetByIdController:    albumGetByIdController,
 		AlbumGetAllController:     albumGetAllController,
 		AlbumUpdateController:     albumUpdateController,
 		AlbumDeleteController:     albumDeleteController,
+		ShortPollingStockController: 	shortPollingController,
+		ShortPollingPriceController:  shortPollingPriceController,
+		LongPollingController: 		longPollingController,
 	}
 }

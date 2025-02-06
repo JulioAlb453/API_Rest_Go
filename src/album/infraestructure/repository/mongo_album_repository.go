@@ -8,8 +8,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	
-    "go.mongodb.org/mongo-driver/bson/primitive"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type MongoAlbumRepository struct {
@@ -23,13 +23,15 @@ func NewMongoAlbumRepository(conn *mongo.Database) *MongoAlbumRepository {
 func (r *MongoAlbumRepository) Save(ctx context.Context, album domain.Album) error {
 	collection := r.db.Collection("albums")
 	album.CreatedAt = time.Now()
+	album.LastUpdated = time.Now()
 	_, err := collection.InsertOne(ctx, bson.M{
-		"Title":     album.Title,
-		"Artist":    album.Artist,
-		"Year":      album.Year,
-		"Stock": 	 album.Stock,
-		"Price": 	 album.Price,
-		"createdAt": album.CreatedAt,
+		"Title":      album.Title,
+		"Artist":     album.Artist,
+		"Year":       album.Year,
+		"Stock":      album.Stock,
+		"Price":      album.Price,
+		"createdAt":  album.CreatedAt,
+		"lastUpdate": album.LastUpdated,
 	})
 	if err != nil {
 		return errors.New("Error al guardar el álbum: " + err.Error())
@@ -40,7 +42,7 @@ func (r *MongoAlbumRepository) Save(ctx context.Context, album domain.Album) err
 func (r *MongoAlbumRepository) GetAlbumsById(ctx context.Context, id primitive.ObjectID) (domain.Album, error) {
 	collection := r.db.Collection("albums")
 
-filter := bson.M{"_id": id}
+	filter := bson.M{"_id": id}
 
 	var album domain.Album
 
@@ -81,44 +83,44 @@ func (r *MongoAlbumRepository) GetAllAlbums(ctx context.Context) ([]domain.Album
 
 func (r *MongoAlbumRepository) Update(ctx context.Context, album domain.Album) (domain.Album, error) {
 	collection := r.db.Collection("albums")
+
 	objectId, err := primitive.ObjectIDFromHex(album.Id.Hex())
-	 if err !=nil {
-		return domain.Album{}, errors.New("ID invalido")
-	 }
-	
+	if err != nil {
+		return domain.Album{}, errors.New("ID invalido: " + err.Error())
+	}
+
 	filter := bson.M{"_id": objectId}
 	update := bson.M{
 		"$set": bson.M{
-			"Title":    album.Title,
-			"Artist":   album.Artist,
-			"Year":     album.Year,
-			"Stock": album.Stock,
-			"Price": album.Price,
-			"updatedAt": time.Now(),
+			"Title":       album.Title,
+			"Artist":      album.Artist,
+			"Year":        album.Year,
+			"Stock":       album.Stock,
+			"Price":       album.Price,
+			"LastUpdated": time.Now(),
 		},
 	}
 
 	result, err := collection.UpdateOne(ctx, filter, update)
-	if err != nil{
-		return domain.Album{}, errors.New("Error al actualizar el album" + err.Error())
+	if err != nil {
+		return domain.Album{}, errors.New("Error al actualizar el álbum: " + err.Error())
 	}
-	if result.MatchedCount == 0{
-		return domain.Album{}, errors.New("Ningun album coincide el filtro")
+
+	if result.MatchedCount == 0 {
+		return domain.Album{}, errors.New("Ningún álbum coincide con el filtro")
 	}
 	return album, nil
 }
 
-
-
 func (r *MongoAlbumRepository) Delete(ctx context.Context, id primitive.ObjectID) error {
-    collection := r.db.Collection("albums")
+	collection := r.db.Collection("albums")
 
-    result, err := collection.DeleteOne(ctx, bson.M{"_id": id})
-    if err != nil {
-        return err 
-    }
-    if result.DeletedCount == 0 {
-        return domain.ErrAlbumNotFound 
-    }
-    return nil 
+	result, err := collection.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return domain.ErrAlbumNotFound
+	}
+	return nil
 }
