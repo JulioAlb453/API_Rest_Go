@@ -13,4 +13,5 @@ type Album struct {
 	Stock	  int  `bson:"Stock"`
 	Price     float32 `bson:"Price"`
 	CreatedAt time.Time `bson:"createdAt"`
+    LastUpdated time.Time `bson:"LastUpdated"`
 }

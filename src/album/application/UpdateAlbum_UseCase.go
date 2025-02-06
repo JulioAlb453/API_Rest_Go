@@ -4,6 +4,7 @@ import (
 	"API_ejemplo/src/album/domain"
 	"context"
 	"errors"
+	"time"
 )
 
 type UpdateAlbumsUseCase struct {
@@ -26,11 +27,13 @@ func (uc *UpdateAlbumsUseCase) Execute(ctx context.Context, album domain.Album) 
 		}
 		return domain.Album{}, err
 	}
-
+	
 	existingAlbum.Title = album.Title
 	existingAlbum.Artist = album.Artist
 	existingAlbum.Year = album.Year
-
+	existingAlbum.Stock = album.Stock
+	existingAlbum.Price = album.Price
+	existingAlbum.LastUpdated = time.Now() 
 	updatedAlbum, err := uc.repo.Update(ctx, existingAlbum)
 	if err != nil {
 		return domain.Album{}, err
