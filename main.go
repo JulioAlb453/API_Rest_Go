@@ -1,14 +1,11 @@
 package main
 
-import (
-	"API_ejemplo/src/album/infraestructure"
+import "API_ejemplo/src/routes"
 
-)
 
 func main() {
+	router := routes.SetupRouter()
 
-	deps := infraestructure.Init()
-	router := infraestructure.Routes(deps)
 	router.Run(":8080")
 
 }

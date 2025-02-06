@@ -16,7 +16,7 @@ type Dependencies struct {
 	SupplierDeleteController 		*controllers.SupplierDeleteController
 }
 
-func Init() *Dependencies{
+func InitSupplierDeps() *Dependencies{
 	conn := core.Connect()
 
 	if conn == nil {

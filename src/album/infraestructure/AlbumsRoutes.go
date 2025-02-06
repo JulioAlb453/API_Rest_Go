@@ -1,18 +1,11 @@
 package infraestructure
 
-import (
-	"github.com/gin-gonic/gin"
-)
+import "github.com/gin-gonic/gin"
 
-func Routes (deps *Dependencies) *gin.Engine{
-	router := gin.Default()
-
-   
-	router.POST("/albums", deps.AlbumSaveController.CreateAlbumHandler)
-	router.GET("/albums/:id", deps.AlbumGetByIdController.GetAlbumHandler)
-	router.GET("/albums", deps.AlbumGetAllController.GetAllAlbumsHandler)
-	router.PUT("/albums/:id", deps.AlbumUpdateController.UpdateAlbumHandler)
-	router.DELETE("/albums/:id", deps.AlbumDeleteController.DeleteAlbumHandler)
-
-	return router
+func Routes(group *gin.RouterGroup, deps *Dependencies) {
+	group.POST("/", deps.AlbumSaveController.CreateAlbumHandler)
+	group.GET("/", deps.AlbumGetAllController.GetAllAlbumsHandler)
+	group.GET("/:id", deps.AlbumGetByIdController.GetAlbumByIdHandler)
+	group.PUT("/:id", deps.AlbumUpdateController.UpdateAlbumHandler)
+	group.DELETE("/:id", deps.AlbumDeleteController.DeleteAlbumHandler)
 }

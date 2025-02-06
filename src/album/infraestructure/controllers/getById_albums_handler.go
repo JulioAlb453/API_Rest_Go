@@ -16,7 +16,7 @@ func NewAlbumGetByIdController(useCase *application.GetAlbumByIdUseCase) *AlbumG
     return &AlbumGetByIdController{UseCase: useCase}
 }
 
-func (ac *AlbumGetByIdController) GetAlbumHandler(c *gin.Context) {
+func (ac *AlbumGetByIdController) GetAlbumByIdHandler(c *gin.Context) {
     id := c.Param("id")
     objectId, err := primitive.ObjectIDFromHex(id)
     if err != nil {
