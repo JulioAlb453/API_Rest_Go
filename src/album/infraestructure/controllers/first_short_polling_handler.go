@@ -18,7 +18,6 @@ type ShortPollingStockController struct {
 func NewShortPollingStockController(client *mongo.Client) *ShortPollingStockController {
 	return &ShortPollingStockController{DBClient: client}
 }
-
 func (s *ShortPollingStockController) ShortPollingStockHandler(c *gin.Context) {
 	collection := s.DBClient.Database("MundyWalk").Collection("albums")
 
@@ -49,10 +48,13 @@ func (s *ShortPollingStockController) ShortPollingStockHandler(c *gin.Context) {
 					time.Sleep(2 * time.Second) 
 					continue
 				}
+
+				// Si ocurre un error, responder con el error
 				log.Println("Error al obtener álbum:", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener álbum"})
 				return
 			}
+
 			lastUpdated = album.LastUpdated
 			c.JSON(http.StatusOK, gin.H{
 				"message": "Cambio en el stock detectado",

@@ -10,8 +10,7 @@ func Routes(group *gin.RouterGroup, deps *Dependencies) {
 	group.DELETE("/:id", deps.AlbumDeleteController.DeleteAlbumHandler)
 
 	group.GET("/short-polling-stock", deps.ShortPollingStockController.ShortPollingStockHandler)
-	group.GET("/short-polling-price", deps.ShortPollingPriceController.ShortPollingPriceHandler) // Nueva ruta de precio
-	
+	group.GET("/short-polling-price", deps.ShortPollingPriceController.ShortPollingPriceHandler)
 	group.GET("/long-polling", deps.LongPollingController.LongPollingHandler)
 
 }
