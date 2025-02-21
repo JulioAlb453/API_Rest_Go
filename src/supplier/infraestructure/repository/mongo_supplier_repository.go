@@ -53,7 +53,7 @@ func (r *MongoSupplierRepository) GetSupplierById(ctx context.Context, id primit
 }
 
 func (r *MongoSupplierRepository) GetAllSupplier(ctx context.Context) ([]domain.Supplier, error) {
-	collection := r.db.Collection("supplier")
+	collection := r.db.Collection("suppliers")
 	cursor, err := collection.Find(ctx, bson.M{})
 
 	if err != nil {
@@ -108,7 +108,7 @@ func (r *MongoSupplierRepository) Update(ctx context.Context, supplier domain.Su
 }
 
 func (r *MongoSupplierRepository) Delete(ctx context.Context, id primitive.ObjectID) error {
-	collection := r.db.Collection("supplier")
+	collection := r.db.Collection("suppliers")
 
 	result, err := collection.DeleteOne(ctx, bson.M{"_id": id})
 
