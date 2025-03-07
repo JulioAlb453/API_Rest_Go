@@ -1,4 +1,4 @@
-// aqui se realiza la conexion de la basd de datos
+
 package core
 
 import (
