@@ -124,3 +124,57 @@ func (r *MongoAlbumRepository) Delete(ctx context.Context, id primitive.ObjectID
 	}
 	return nil
 }
+
+func (r *MongoAlbumRepository) GetAlbumsByTitle(ctx context.Context, title string) ([]domain.Album, error) {
+	collection := r.db.Collection("albums")
+
+	filter := bson.M{"Title": bson.M{"$regex": title, "$options": "i"}}
+
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return nil, errors.New("error al buscar álbumes por título: " + err.Error())
+	}
+	defer cursor.Close(ctx)
+
+	var albums []domain.Album
+	for cursor.Next(ctx) {
+		var album domain.Album
+		if err := cursor.Decode(&album); err != nil {
+			return nil, errors.New("error al decodificar un álbum: " + err.Error())
+		}
+		albums = append(albums, album)
+	}
+
+	if len(albums) == 0 {
+		return nil, domain.ErrAlbumNotFound
+	}
+
+	return albums, nil
+}
+
+func (r *MongoAlbumRepository) GetAlbumsByArtist(ctx context.Context, artist string) ([]domain.Album, error) {
+	collection := r.db.Collection("albums")
+
+	filter := bson.M{"Artist": bson.M{"$regex": artist, "$options": "i"}}
+
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return nil, errors.New("error al buscar álbumes por artista: " + err.Error())
+	}
+	defer cursor.Close(ctx)
+
+	var albums []domain.Album
+	for cursor.Next(ctx) {
+		var album domain.Album
+		if err := cursor.Decode(&album); err != nil {
+			return nil, errors.New("error al decodificar un álbum: " + err.Error())
+		}
+		albums = append(albums, album)
+	}
+
+	if len(albums) == 0 {
+		return nil, domain.ErrAlbumNotFound
+	}
+
+	return albums, nil
+}
