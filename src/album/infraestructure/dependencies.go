@@ -10,7 +10,9 @@ import (
 
 type Dependencies struct {
 	AlbumSaveController       *controllers.AlbumSaveController
-	AlbumGetByIdController    *controllers.AlbumGetByIdController
+	AlbumGetByIdController    *controllers.AlbumGetByIdController	
+	AlbumGetByArtistController *controllers.AlbumGetByArtistController 
+	AlbumGetByTitleController  *controllers.AlbumGetByTitleController
 	AlbumGetAllController     *controllers.AlbumGetAllController
 	AlbumUpdateController     *controllers.AlbumUpdateController
 	AlbumDeleteController     *controllers.AlbumDeleteController
@@ -32,12 +34,16 @@ func Init() *Dependencies {
 
 	createAlbumUseCase := application.NewCreatedAlbumUseCase(albumRepo)
 	getAlbumByIdUseCase := application.NewGetAlbumByIdUseCase(albumRepo)
+	getAlbumByTitleUseCase := application.NewGetAlbumByTitleUseCase(albumRepo) 
+	getAlbumByArtistUseCase := application.NewGetAlbumByArtistUseCase(albumRepo) 
 	getAllAlbumsUseCase := application.NewGetAllAlbumsUseCase(albumRepo)
 	updateAlbumUseCase := application.NewUpdateAlbumsUseCase(albumRepo)
 	deleteAlbumUseCase := application.NewDeleteAlbumUseCase(albumRepo)
 
 	albumSaveController := controllers.NewAlbumSaveController(createAlbumUseCase)
 	albumGetByIdController := controllers.NewAlbumGetByIdController(getAlbumByIdUseCase)
+	albumGetByTitleController := controllers.NewAlbumGetByTitleController(getAlbumByTitleUseCase) 
+	albumGetByArtistController := controllers.NewAlbumGetByArtistController(getAlbumByArtistUseCase) 
 	albumGetAllController := controllers.NewAlbumGetAllController(getAllAlbumsUseCase)
 	albumUpdateController := controllers.NewAlbumUpdateController(updateAlbumUseCase)
 	albumDeleteController := controllers.NewAlbumDeleteController(deleteAlbumUseCase)
@@ -49,6 +55,8 @@ func Init() *Dependencies {
 	return &Dependencies{
 		AlbumSaveController:       albumSaveController,
 		AlbumGetByIdController:    albumGetByIdController,
+		AlbumGetByTitleController:  albumGetByTitleController,  
+		AlbumGetByArtistController: albumGetByArtistController, 
 		AlbumGetAllController:     albumGetAllController,
 		AlbumUpdateController:     albumUpdateController,
 		AlbumDeleteController:     albumDeleteController,
