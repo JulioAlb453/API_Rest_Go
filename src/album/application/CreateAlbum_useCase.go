@@ -14,7 +14,6 @@ func NewCreatedAlbumUseCase(repo domain.IAlbums) *CreateAlbumUseCase {
 }
 
 func (uc *CreateAlbumUseCase) Execute(ctx context.Context, album domain.Album) error {
-	// Validar campos obligatorios
 	if album.Artist == "" || album.Title == ""  {
 		return domain.ErrMissingFields
 	}
