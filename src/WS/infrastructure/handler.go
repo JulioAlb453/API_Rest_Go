@@ -1,3 +1,5 @@
+// src/album/infrastructure/ws/handler.go
+
 package infrastructure
 
 import (
@@ -11,8 +13,15 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },  // Permitir conexiones desde cualquier origen
 }
 
+// WebSocketHandler maneja las conexiones WebSocket y los mensajes de los clientes
 func WebSocketHandler(broadcaster domain.Broadcaster) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.URL.Query().Get("userID")
+		if userID == "" {
+			http.Error(w, "Se requiere un UserID", http.StatusBadRequest)
+			return
+		}
+
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			http.Error(w, "No se pudo establecer conexión WebSocket", http.StatusBadRequest)
@@ -20,36 +29,25 @@ func WebSocketHandler(broadcaster domain.Broadcaster) http.HandlerFunc {
 		}
 
 		// Registrar cliente
-		broadcaster.RegisterClient(conn)
-		log.Println("👤 Nuevo cliente conectado")
+		client := domain.Client{
+			UserID:     userID,
+			Connection: conn,
+		}
+		broadcaster.RegisterClient(client)
+		log.Println("👤 Nuevo cliente conectado:", userID)
 
 		// Leer mensajes del cliente
 		for {
 			_, message, err := conn.ReadMessage()
 			if err != nil {
-				log.Println("❌ Error leyendo mensaje:", err)
-				broadcaster.UnregisterClient(conn)
+				log.Println("❌ Error leyendo mensaje de cliente:", userID, err)
+				broadcaster.UnregisterClient(client)
 				break
 			}
-			log.Println("📥 Mensaje recibido:", string(message))
+			log.Println("📥 Mensaje recibido de cliente:", userID, string(message))
+
 			// Enviar el mensaje a todos los clientes conectados
 			broadcaster.BroadcastMessage(message)
 		}
-	}
-}
-
-// Función para consumir mensajes de RabbitMQ y transmitir a WebSocket
-func ConsumeStockAlertsAndBroadcast(rb domain.RabbitMQ, broadcaster domain.Broadcaster) {
-	err := rb.Consume("stock_alerts", "stock.data", func(msg []byte) {
-		log.Println("🎧 Mensaje recibido desde RabbitMQ:", string(msg))
-
-		// Aquí puedes realizar alguna lógica adicional si es necesario antes de pasar el mensaje
-		// Por ejemplo, verificar si el stock es bajo y solo enviar mensajes de alerta.
-		// Si el mensaje contiene una alerta de stock bajo:
-		broadcaster.BroadcastMessage(msg) // Enviar el mensaje a todos los clientes conectados
-	})
-
-	if err != nil {
-		log.Fatalf("❌ Error al consumir mensajes de RabbitMQ: %v", err)
 	}
 }

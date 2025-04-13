@@ -1,3 +1,5 @@
+// src/album/infrastructure/ws/broadcaster.go
+
 package ws
 
 import (
@@ -9,45 +11,51 @@ import (
 )
 
 type WebSocketBroadcaster struct {
-	clients map[*websocket.Conn]bool
+	clients map[string]*websocket.Conn  // Usamos un mapa con UserID como clave
 	mu      sync.Mutex
 }
 
 var _ domain.Broadcaster = &WebSocketBroadcaster{}
 
+// NewWebSocketBroadcaster crea una nueva instancia de WebSocketBroadcaster
 func NewWebSocketBroadcaster() *WebSocketBroadcaster {
 	return &WebSocketBroadcaster{
-		clients: make(map[*websocket.Conn]bool),
+		clients: make(map[string]*websocket.Conn),  // Cambiar la estructura para usar UserID
 	}
 }
 
-func (b *WebSocketBroadcaster) RegisterClient(client *websocket.Conn) {
+// RegisterClient registra un cliente por UserID y conexión
+func (b *WebSocketBroadcaster) RegisterClient(client domain.Client) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.clients[client] = true
+	b.clients[client.UserID] = client.Connection
+	log.Println("👤 Cliente registrado:", client.UserID)
 }
 
-func (b *WebSocketBroadcaster) UnregisterClient(client *websocket.Conn) {
+// UnregisterClient desregistra un cliente por UserID
+func (b *WebSocketBroadcaster) UnregisterClient(client domain.Client) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	client.Close()
-	delete(b.clients, client)
+	client.Connection.Close()
+	delete(b.clients, client.UserID)
+	log.Println("👤 Cliente desregistrado:", client.UserID)
 }
 
+// BroadcastMessage envía un mensaje a todos los clientes conectados
 func (b *WebSocketBroadcaster) BroadcastMessage(message []byte) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	
+
 	log.Println("🔄 Broadcasting message to all clients:", string(message)) // Log antes de enviar el mensaje
-	
-	for client := range b.clients {
+
+	for userID, client := range b.clients {
 		err := client.WriteMessage(websocket.TextMessage, message)
 		if err != nil {
-			log.Println("❌ Error enviando mensaje a cliente:", err)
+			log.Println("❌ Error enviando mensaje a cliente:", userID, err)
 			client.Close()
-			delete(b.clients, client)
+			delete(b.clients, userID)
 		} else {
-			log.Println("📤 Mensaje enviado a cliente:", client.RemoteAddr()) // Log cuando se envía el mensaje a cada cliente
+			log.Println("📤 Mensaje enviado a cliente:", userID) // Log cuando se envía el mensaje a cada cliente
 		}
 	}
 }

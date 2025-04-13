@@ -29,7 +29,6 @@ type Dependencies struct {
 	LongPollingController       *controllers.LongPollingController
 	ShortPollingPriceController *controllers.ShortPollingPriceController
 
-	// Cambiar tipo de Broadcaster a puntero
 	Broadcaster *ws.WebSocketBroadcaster
 }
 
