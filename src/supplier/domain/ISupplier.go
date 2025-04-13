@@ -8,7 +8,7 @@ import (
 
 
 type ISupplier interface{
-	Save(ctx context.Context, supplier Supplier) error
+    Save(ctx context.Context, supplier Supplier) error
 	GetSupplierById(ctx context.Context, id primitive.ObjectID)(Supplier, error)
 	GetAllSupplier(ctx context.Context) ([]Supplier, error)
 	Update(ctx context.Context, supplier Supplier)(Supplier, error)

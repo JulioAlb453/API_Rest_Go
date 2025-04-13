@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"log"
 	"time"
-
-	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/streadway/amqp"
 )
 
 type RabbitMQBroker struct {
@@ -14,29 +13,18 @@ type RabbitMQBroker struct {
 	ch   *amqp.Channel
 }
 
-
-func NewRabbitMQBroker(uri string) (*RabbitMQBroker, error) {
-	conn, err := amqp.Dial(uri)
+func NewRabbitMQBroker(url string) (*RabbitMQBroker, error) {
+	conn, err := amqp.Dial(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to RabbitMQ: %v", err)
+		log.Fatalf("Error al conectar a RabbitMQ: %v", err)
+		return nil, err
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		return nil, fmt.Errorf("failed to open channel: %v", err)
-	}
-
-	err = ch.ExchangeDeclare(
-		"album.events", 
-		"topic",       
-		true,           
-		false,        
-		false,         
-		false,         
-		nil,          
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to declare exchange: %v", err)
+		conn.Close()
+		log.Fatalf("Error al abrir un canal de RabbitMQ: %v", err)
+		return nil, err
 	}
 
 	return &RabbitMQBroker{
@@ -45,85 +33,129 @@ func NewRabbitMQBroker(uri string) (*RabbitMQBroker, error) {
 	}, nil
 }
 
-func (b *RabbitMQBroker) Publish(routingKey string, payload interface{}) error {
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("error marshaling payload: %v", err)
+func (b *RabbitMQBroker) PublishEvent(eventType string, data map[string]interface{}) error {
+	event := map[string]interface{}{
+		"event_type": eventType,
+		"timestamp":  time.Now().UTC(),
+		"data":       data,
 	}
 
-	return b.ch.Publish(
+	body, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("error marshaling event: %v", err)
+	}
+
+	err = b.ch.Publish(
 		"albums.events", 
-		"album.data",
-		false,
-		false,
+		"album.data",   
+		false,        
+		false,      
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        body,
 			Timestamp:   time.Now(),
 		},
 	)
+
+	if err != nil {
+		log.Printf("Error al publicar evento %s: %v", eventType, err)
+	}
+	return err
 }
 
-func (b *RabbitMQBroker) Consume(queueName, bindingKey string, handler func(msg []byte) error) error {
-    q, err := b.ch.QueueDeclare(
-        queueName,
-        true,  
-        false, 
-        false, 
-        false, 
-        nil,
-    )
-    if err != nil {
-        log.Printf("❌ Error declarando cola: %v", err)
-        return err
-    }
+func (rb *RabbitMQBroker) Consume(queueName, bindingKey string, handler func(msg []byte)) error {
+	ch, err := rb.conn.Channel()
+	if err != nil {
+		return err
+	}
 
-    err = b.ch.QueueBind(
-        queueName,
-        "album.data",
-        "album.events",
-        false,
-        nil,
-    )
-    if err != nil {
-        log.Printf("❌ Error en binding de cola: %v", err)
-        return err
-    }
+	err = ch.ExchangeDeclare(
+		"album.events",
+		"topic",         
+		true,           
+		false,          
+		false,          
+		false,          
+		nil,            
+	)
+	if err != nil {
+		return err
+	}
 
-    msgs, err := b.ch.Consume(
-        q.Name,
-        "",
-        false, 
-        false,
-        false,
-        false,
-        nil,
-    )
-    if err != nil {
-        log.Printf("❌ Error al iniciar consumo: %v", err)
-        return err
-    }
+	_, err = ch.QueueDeclare(
+		queueName,
+		true,      
+		false,    
+		false,     
+		false,     
+		nil,       
+	)
+	if err != nil {
+		return err
+	}
 
-    go func() {
-        log.Println("📡 Esperando mensajes en la cola:", q.Name)
+	err = ch.QueueBind(
+		queueName,  
+		bindingKey, 
+		"album.events", 
+		false,      
+		nil,         
+	)
+	if err != nil {
+		return err
+	}
 
-        for d := range msgs {
-            log.Println("📩 Mensaje recibido:", string(d.Body))
+	msgs, err := ch.Consume(
+		queueName, 
+		"",        
+		true,     
+		false,    
+		false,     
+		false,    
+		nil,       
+	)
+	if err != nil {
+		return err
+	}
 
-            if err := handler(d.Body); err != nil {
-                log.Printf("❌ Error procesando mensaje: %v", err)
-                continue
-            }
+	go func() {
+		for d := range msgs {
+			handler(d.Body) 
+		}
+	}()
 
-            d.Ack(false)
-            log.Println("✅ Mensaje procesado correctamente.")
-        }
-    }()
-
-    return nil
+	return nil
 }
 
+func (b *RabbitMQBroker) Publish(queue string, message []byte) error {
+	ch, err := b.conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
 
+	_, err = ch.QueueDeclare(
+		queue, 
+		true,  
+		false, 
+		false, 
+		false, 
+		nil,   
+	)
+	if err != nil {
+		return err
+	}
+
+	return ch.Publish(
+		"",   
+		queue,
+		false, 
+		false, 
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:       message,
+		})
+}
 
 func (b *RabbitMQBroker) Close() {
 	if b.ch != nil {

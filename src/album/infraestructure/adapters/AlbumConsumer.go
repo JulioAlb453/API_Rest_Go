@@ -2,15 +2,19 @@ package adapters
 
 import (
 	"API_ejemplo/src/album/application"
-	"github.com/streadway/amqp"
+	"API_ejemplo/src/album/domain"
+	"context"
+	"encoding/json"
 	"log"
+
+	"github.com/streadway/amqp"
 )
 
 type AlbumConsumer struct {
-	useCase *application.ConsumeAlbumEventUseCase
+	useCase *application.UpdateAlbumsUseCase
 }
 
-func NewAlbumConsumer(useCase *application.ConsumeAlbumEventUseCase) *AlbumConsumer {
+func NewAlbumConsumer(useCase *application.UpdateAlbumsUseCase) *AlbumConsumer {
 	return &AlbumConsumer{useCase: useCase}
 }
 
@@ -18,8 +22,8 @@ func (ac *AlbumConsumer) StartConsuming(ch *amqp.Channel, queueName string) erro
 	msgs, err := ch.Consume(
 		queueName,
 		"",
-		true,  // autoAck
-		false, // exclusive
+		true,
+		false,
 		false,
 		false,
 		nil,
@@ -30,11 +34,20 @@ func (ac *AlbumConsumer) StartConsuming(ch *amqp.Channel, queueName string) erro
 
 	go func() {
 		for msg := range msgs {
-			log.Println("📩 Mensaje recibido")
-			err := ac.useCase.Handle(msg.Body)
+			var album domain.Album
+			err := json.Unmarshal(msg.Body, &album)
 			if err != nil {
-				log.Printf("❌ Error procesando mensaje: %v", err)
+				log.Printf("❌ Error deserializando el mensaje: %v", err)
+				continue
 			}
+
+			updatedAlbum, err := ac.useCase.Execute(context.Background(), album)
+			if err != nil {
+				log.Printf("❌ Error procesando mensaje de actualización: %v", err)
+				continue
+			}
+
+			log.Printf("✅ Álbum actualizado: %v", updatedAlbum)
 		}
 	}()
 

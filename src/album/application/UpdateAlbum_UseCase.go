@@ -1,130 +1,84 @@
+// application/use_case.go
 package application
 
 import (
 	"API_ejemplo/src/album/domain"
-	"API_ejemplo/src/shared/broker"
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"time"
 )
 
 type UpdateAlbumsUseCase struct {
-	repo         domain.IAlbums
-	broker       *broker.RabbitMQBroker
-	stockWarning int
+	repo          domain.IAlbums
+	rabbitMQBroker RabbitMQPublisher
+	broadcaster   domain.Broadcaster
+	stockWarning  int
 }
 
-func NewUpdateAlbumsUseCase(repo domain.IAlbums, broker *broker.RabbitMQBroker) *UpdateAlbumsUseCase {
-	return &UpdateAlbumsUseCase{repo: repo,
-		broker:       broker,
-		stockWarning: 8,
+type RabbitMQPublisher interface {
+	Publish(queue string, message []byte) error
+}
+
+func NewUpdateAlbumsUseCase(repo domain.IAlbums, rabbitMQBroker RabbitMQPublisher, broadcaster domain.Broadcaster) *UpdateAlbumsUseCase {
+	return &UpdateAlbumsUseCase{
+		repo:          repo,
+		broadcaster:   broadcaster,
+		rabbitMQBroker: rabbitMQBroker,
+		stockWarning:  8,
 	}
 }
 
 func (uc *UpdateAlbumsUseCase) Execute(ctx context.Context, album domain.Album) (domain.Album, error) {
-    log.Printf("Received Stock: %d", album.Stock)
-
-    // Verificación de campos obligatorios
-    if album.Artist == "" || album.Title == "" {
-        return domain.Album{}, errors.New("invalid input: Artista y Titulo son requeridos")
-    }
-	
-    // Obtener el album existente
-    existingAlbum, err := uc.repo.GetAlbumsById(ctx, album.Id)
-    if err != nil {
-        if errors.Is(err, domain.ErrAlbumNotFound) {
-            return domain.Album{}, domain.ErrAlbumNotFound
-        }
-        return domain.Album{}, err
-    }
-
-    // Crear una variable auxiliar para almacenar el valor de stock anterior
-    oldStock := existingAlbum.Stock
-
-    // Mostrar log con los valores antiguos y nuevos
-    log.Printf("Old Stock: %d, New Stock: %d", oldStock, album.Stock)
-	
-    // Actualizar el album
-    existingAlbum.Title = album.Title
-    existingAlbum.Artist = album.Artist
-    existingAlbum.Year = album.Year
-    existingAlbum.Stock = album.Stock  // Aquí se actualiza el stock
-    existingAlbum.Price = album.Price
-    existingAlbum.LastUpdated = time.Now()
-
-    // Log para verificar si el stock de existingAlbum se actualiza correctamente
-    log.Printf("Before publishing events, Stock is: %d", existingAlbum.Stock)
-	
-    // Actualizar el album en el repositorio
-    updatedAlbum, err := uc.repo.Update(ctx, existingAlbum)
-    if err != nil {
-        return domain.Album{}, err
-    }
-
-    // Log después de la actualización
-    log.Printf("Updated Stock: %d", updatedAlbum.Stock)
-
-    // Preparar los datos del evento
-    eventData := map[string]interface{}{
-        "id": updatedAlbum.Id,
-        "title": updatedAlbum.Title,
-        "artist": updatedAlbum.Artist,
-        "year": updatedAlbum.Year,
-        "stock": updatedAlbum.Stock,
-        "price": updatedAlbum.Price,
-    }
-
-    // Llamar a la función para publicar los eventos, pasando los valores de stock antes y después
-    uc.publishEvents(eventData, oldStock, updatedAlbum)
-
-    return updatedAlbum, nil
-}
-
-
-func (uc *UpdateAlbumsUseCase) publishEvents(eventData map[string]interface{}, oldStock int, updatedAlbum domain.Album) {
-	log.Println("Publishing events...")
-
-	log.Printf("Before comparison: Old Stock: %d, New Stock: %d", oldStock, updatedAlbum.Stock)
-
-	if oldStock != updatedAlbum.Stock {
-		log.Println("Stock has changed, publishing stock-related events...")
-
-		stockEvent := make(map[string]interface{})
-		for k, v := range eventData {
-			stockEvent[k] = v
-		}
-		stockEvent["stock_change"] = updatedAlbum.Stock - oldStock
-
-		if updatedAlbum.Stock < uc.stockWarning {
-			log.Print("ento al if del stock")
-			stockEvent["warning_level"] = "Baja cantidad"
-			uc.publishEvent("album.stock.low", stockEvent)
-		} else{
-			log.Print("No entro al if")
-		}
-
-		if updatedAlbum.Stock <= 0 {
-			stockEvent["warning_level"] = "Sin existencias"
-			uc.publishEvent("album.stock.out", stockEvent)
-		}
-	} else {
-		log.Println("Stock has not changed, no event will be published.")
+	if album.Artist == "" || album.Title == "" {
+		return domain.Album{}, errors.New("artista y título son requeridos")
 	}
-}
+	if album.Price <= 0 || album.Stock < 0 || album.Year <= "" {
+		return domain.Album{}, errors.New("precio, stock y año deben ser válidos")
+	}
 
+	existingAlbum, err := uc.repo.GetAlbumsById(ctx, album.Id)
+	if err != nil {
+		return domain.Album{}, err
+	}
 
+	existingAlbum.Title = album.Title
+	existingAlbum.Artist = album.Artist
+	existingAlbum.Year = album.Year
+	existingAlbum.Stock = album.Stock
+	existingAlbum.Price = album.Price
+	existingAlbum.LastUpdated = time.Now()
 
+	updatedAlbum, err := uc.repo.Update(ctx, existingAlbum)
+	if err != nil {
+		return domain.Album{}, err
+	}
 
-func (uc *UpdateAlbumsUseCase) publishEvent(eventType string, data map[string]interface{}) {
-    event := map[string]interface{}{
-        "event_type": eventType,
-        "timestamp":  time.Now().UTC(),
-        "data":       data,
-    }
+	if updatedAlbum.Stock < uc.stockWarning {
+		alertMessage := map[string]interface{}{
+			"event_type": "low_stock_alert",
+			"id":         updatedAlbum.Id,
+			"title":      updatedAlbum.Title,
+			"stock":      updatedAlbum.Stock,
+			"threshold":  uc.stockWarning,
+			"timestamp":  time.Now().Format(time.RFC3339),
+		}
 
-    err := uc.broker.Publish("album.events"+eventType, event)
-    if err != nil {
-        log.Printf("Failed to publish %s event: %v", eventType, err)
-    }
+		if jsonAlert, err := json.Marshal(alertMessage); err == nil {
+			if err := uc.rabbitMQBroker.Publish("stock_alerts", jsonAlert); err != nil {
+				log.Printf("❌ Error enviando alerta de stock bajo: %v", err)
+			} else {
+				log.Printf("🚨 Alerta enviada: low_stock_alert -> %s", jsonAlert)
+			}
+
+			log.Println("🔔 Enviando alerta al WebSocket:", string(jsonAlert))
+			uc.broadcaster.BroadcastMessage(jsonAlert)
+			log.Print("Alerta enviada al WS")
+		} else {
+			log.Printf("❌ Error al crear el mensaje de alerta: %v", err)
+		}
+	}
+
+	return updatedAlbum, nil
 }
